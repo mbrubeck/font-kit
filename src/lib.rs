@@ -29,12 +29,17 @@ extern crate core_foundation;
 extern crate core_graphics;
 #[cfg(target_os = "macos")]
 extern crate core_text;
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+extern crate freetype;
 
 #[cfg(target_family = "windows")]
 #[path = "platform/windows.rs"]
 mod platform;
 #[cfg(target_os = "macos")]
 #[path = "platform/macos.rs"]
+mod platform;
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[path = "platform/freetype.rs"]
 mod platform;
 
 pub mod descriptor;
