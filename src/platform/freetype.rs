@@ -12,10 +12,15 @@ use euclid::{Point2D, Rect, Vector2D};
 use freetype::freetype::{
     FT_Done_Face,
     FT_Face,
+    FT_Get_Char_Index,
+    FT_Init_FreeType,
+    FT_Library,
+    FT_New_Memory_Face,
 };
 use lyon_path::builder::PathBuilder;
 use std::{
     fs::File,
+    ptr,
     sync::Arc,
 };
 
@@ -30,15 +35,36 @@ pub struct Font {
 }
 
 impl Font {
-    pub fn from_bytes(font_data: Arc<Vec<u8>>) -> Result<Font, ()> {
-        unimplemented!()
+    pub fn from_bytes(bytes: Arc<Vec<u8>>) -> Result<Font, ()> {
+        let font_index = 0; // TODO: Support other font indices.
+        let library = Library::new()?; // TODO: Cache the FT_Library.
+        let mut face = ptr::null_mut();
+
+        unsafe {
+            let result = FT_New_Memory_Face(
+                library.library,
+                bytes.as_ptr(),
+                bytes.len() as i64,
+                font_index,
+                &mut face,
+            );
+            if result != 0 || face.is_null() {
+                return Err(());
+            }
+        }
+        Ok(Font {
+            face,
+            font_data: Some(bytes),
+        })
     }
 
+    // TODO: Change to take a filename instead of a File?
     pub fn from_file(mut file: File) -> Result<Font, ()> {
         unimplemented!()
     }
 
     pub fn from_native_font(face: NativeFont) -> Font {
+        assert!(!face.is_null());
         Font {
             face,
             font_data: None,
@@ -55,7 +81,11 @@ impl Font {
     }
 
     pub fn glyph_for_char(&self, character: char) -> Option<u32> {
-        unimplemented!()
+        let idx = unsafe { FT_Get_Char_Index(self.face, character as u64) };
+        if idx == 0 {
+            return None
+        }
+        Some(idx)
     }
 
     pub fn outline<B>(&self, glyph_id: u32, path_builder: &mut B) -> Result<(), ()>
@@ -94,3 +124,20 @@ impl Drop for Font {
 }
 
 pub type FontData = Arc<Vec<u8>>;
+
+struct Library {
+    library: FT_Library,
+}
+
+impl Library {
+    pub fn new() -> Result<Self, ()> {
+        unsafe {
+            let mut library = ptr::null_mut();
+            let result = FT_Init_FreeType(&mut library);
+            if result != 0 {
+                return Err(())
+            }
+            Ok(Self { library })
+        }
+    }
+}

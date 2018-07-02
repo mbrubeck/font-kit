@@ -29,4 +29,4 @@ winapi = "0.2"
 # path = "/Users/pcwalton/Source/core-foundation-rs/core-text"
 
 [target.'cfg(not(any(target_os = "macos", target_os = "windows")))'.dependencies]
-freetype = "0.3"
+freetype = "0.4"
